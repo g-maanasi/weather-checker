@@ -1,2 +1,3 @@
 /backend/venv
 /backend/.cache.sqlite
+/backend/__pycache__
