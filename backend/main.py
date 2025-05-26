@@ -5,6 +5,7 @@ from fastapi.responses import RedirectResponse
 import uvicorn
 import openmeteo_requests
 import requests_cache
+import random
 import pandas as pd
 from pydantic import BaseModel
 from retry_requests import retry
@@ -12,6 +13,9 @@ import json
 import sqlite3
 import bcrypt
 import secrets
+import math
+from datetime import datetime, timedelta
+import jwt
 
 # Setup the Open-Meteo API client with cache and retry on error
 cache_session = requests_cache.CachedSession('.cache', expire_after = 3600)
@@ -31,33 +35,55 @@ app.add_middleware(
 def get_conn():
     conn = sqlite3.connect('weather.db')
     return conn
- 
-@app.get("/")
-def test():
-    return RedirectResponse(url="/api")
 
-#####################
-# WEATHER FUNCTIONS #
-#####################
+###############
+# SITE ROUTES #
+###############
 class WeatherOptions(BaseModel):
-    latitude: int = 52.52
-    longtitude: int = 13.41
-    wind_speed_unit: str = "mph"
+    latitude: float = 52.52
+    longitude: float = 13.41
     temperature_unit: str = "fahrenheit"
+ 
+# Temporary storage for POST data
+temp_storage = {}
 
-@app.post("api/weather/{location}")
-def weather_page(options: WeatherOptions = None):
-    if options is None:
-        options = WeatherOptions()
+@app.get("/")
+def home():
+    min_lat, max_lat = -11, 77 
+    min_lon, max_lon = 26, 180
+    lat = random.uniform(min_lat, max_lat)
+    lon = random.uniform(min_lon, max_lon)
+
+    options = WeatherOptions(latitude=lat, longitude=lon, temperature_unit="fahrenheit")
+    
+    weather_id = f"weather_{len(temp_storage) + 1}"
+    temp_storage[weather_id] = options.dict()
+    
+    return RedirectResponse(url=f"/weather/{weather_id}", status_code=303)
+
+@app.get("/weather/{weather_id}")
+def weather_page_get(weather_id: str):
+    stored_data = temp_storage.get(weather_id)
+    if not stored_data:
+        return {"error": "Weather data not found"}
+    
+    options = WeatherOptions(**stored_data)
+    wind_speed_unit = "mph"
+
+    if options.temperature_unit == "celsius":
+        wind_speed_unit = "kmph"
     
     return {
-        "location": options.latitude,
-        "forecast_days": options.longtitude,
-        "wind_speed_unit": options.wind_speed_unit,
+        "latitude": options.latitude,
+        "longitude": options.longitude,  # Fixed: was using longitude as forecast_days
+        "wind_speed_unit": wind_speed_unit,
         "temperature_unit": options.temperature_unit
     }
 
 
+#####################
+# WEATHER FUNCTIONS #
+#####################
 def get_weather(latitude, longitude, speed_unit, temperature_unit):
     params = {
         "latitude": latitude,
@@ -89,8 +115,8 @@ class SignUpInfo(BaseModel):
     role: str = "user"
 
 class LoginInfo(BaseModel):
-    email: str | None
-    password: str | None
+    email: str | None = None
+    password: str | None = None
 
 @app.post('/api/signup')
 def signup(user_info: SignUpInfo, response: Response):
@@ -151,18 +177,15 @@ def login(user_info: SignUpInfo, response: Response):
     current_pass_attempt = bcrypt.hashpw(current_pass_attempt, salt)
 
     if current_pass_attempt == password_hash:
-        # Add user to cookies
-        response.set_cookie(
-            key="email",
-            value=user_info.email,
-            max_age=86400,
-            httponly=True,
-            secure=True,
-            samesite="lax"
-        )
-
-        conn.close()
         return {'success': True, 'reason': None}
     
     conn.close()
     return {'success': False, 'reason': "password hash did not match"}
+
+##################
+# JWT ENCRYPTION #
+##################
+def jwt_encrypt(email, password_hash, isAdmin):
+    header = {'alg': 'HS256', 'typ': 'JWT'}
+    payload = {'email': email, 'password_hash': password_hash, 'admin': isAdmin, 'exp': datetime.now() + timedelta(days=1)}
+    
