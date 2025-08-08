@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata = {
   title: "Global Weather",
-  description: "Quick way to check the weather around the world!",
+  description: "Quick way to check the weather.",
 };
 
 export default function RootLayout({ children }) {
