@@ -19,10 +19,22 @@ export default function Home() {
   }, [changeTheme]);
 
   return (
-    <ThemeProvider className="home-container" theme={theme}>
+    <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Weather />
-      <Search />
+      <Box
+        className="home-container"
+        sx={{
+          width: "100vw",
+          height: "100vh",
+          boxSizing: "border-box",
+          display: "flex",
+          flexDirection: "row",
+          p: 2,
+        }}
+      >
+        <Weather />
+        <Search />
+      </Box>
     </ThemeProvider>
   );
 }
