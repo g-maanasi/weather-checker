@@ -23,8 +23,17 @@ export default function Location() {
             float: "left",
           }}
         >
-          <LocationCityIcon sx={{ fontSize: 40, alignSelf: "center" }} />
-          <Typography sx={{ fontSize: 40, ml: 1 }}>TEST</Typography>
+          <LocationCityIcon sx={{ fontSize: 30, alignSelf: "center" }} />
+          <Typography
+            sx={{
+              fontSize: 30,
+              ml: 1,
+              alignSelf: "center",
+              fontWeight: "bold",
+            }}
+          >
+            New York City, USA
+          </Typography>
         </Box>
         <Box
           className="datetime"

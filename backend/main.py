@@ -49,10 +49,8 @@ temp_storage = {}
 
 @app.get("/")
 def home():
-    min_lat, max_lat = -11, 77 
-    min_lon, max_lon = 26, 180
-    lat = random.uniform(min_lat, max_lat)
-    lon = random.uniform(min_lon, max_lon)
+    lat = 40
+    lon = -74
 
     options = WeatherOptions(latitude=lat, longitude=lon, temperature_unit="fahrenheit")
     
